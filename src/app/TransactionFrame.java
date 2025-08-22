@@ -137,9 +137,8 @@ public class TransactionFrame extends JFrame {
 
         // 🔹 Action bouton Stripe
         stripeButton.addActionListener(e -> {
-            if (!validerChamps()) return; // ✅ Vérification avant paiement
+            if (!validerChamps()) return;
             try {
-                // 🔹 Ouvrir fenêtre saisie carte
                 CardDialog cardDialog = new CardDialog(this);
                 cardDialog.setVisible(true);
 
@@ -148,12 +147,7 @@ public class TransactionFrame extends JFrame {
                     return;
                 }
 
-                // 🔹 Récupérer infos carte
                 String cardNumber = cardDialog.getCardNumber();
-                String expDate = cardDialog.getExpDate();
-                String cvc = cardDialog.getCvc();
-
-                // Simulation test Stripe
                 if (!"4242424242424242".equals(cardNumber.replaceAll(" ", ""))) {
                     JOptionPane.showMessageDialog(this, "Carte test invalide (utilise 4242 4242 4242 4242).");
                     return;
@@ -163,7 +157,8 @@ public class TransactionFrame extends JFrame {
                 String devise = ((String) deviseCombo.getSelectedItem()).toLowerCase();
                 String description = descriptionField.getText().trim();
 
-                PaiementService paiementService = new PaiementService("sk_test_VOTRE_CLE_API");
+                // ✅ Utilisation du constructeur par défaut qui lit .env
+                PaiementService paiementService = new PaiementService();
                 PaymentIntent paiement = paiementService.creerPaiement((long)(montant*100), devise, description);
 
                 JOptionPane.showMessageDialog(this,
@@ -192,6 +187,7 @@ public class TransactionFrame extends JFrame {
                         JOptionPane.ERROR_MESSAGE);
             }
         });
+
      //  Action prédiction via modèle Python
         predictButton.addActionListener(e -> {
             try {
