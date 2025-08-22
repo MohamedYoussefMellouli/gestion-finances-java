@@ -3,15 +3,27 @@
 /bin/
 /target/
 /*.class
+/.classpath
+/.project
 
 # Fichiers sensibles
 .env
 
+# Logs et fichiers temporaires
+*.log
+*.tmp
+*.bak
+*.swp
+*.DS_Store
 
+# IntelliJ IDEA (si jamais tu l’utilises)
+.idea/
+*.iml
 
+# Node / npm (si jamais tu utilises JS dans le projet)
+node_modules/
+npm-debug.log
 
-
-
-
-
-
+# Autres fichiers de build
+out/
+dist/
