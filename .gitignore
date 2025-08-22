@@ -1,0 +1,17 @@
+# Eclipse
+/.metadata/
+/bin/
+/target/
+/*.class
+
+# Fichiers sensibles
+.env
+
+
+
+
+
+
+
+
+
