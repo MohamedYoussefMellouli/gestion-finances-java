@@ -27,3 +27,4 @@ npm-debug.log
 # Autres fichiers de build
 out/
 dist/
+.env
