@@ -153,13 +153,31 @@ public class TransactionFrame extends JFrame {
     }
 
     // 🔹 Validation simple
+ // 🔹 Validation avec messages d'erreur
     private boolean validerChamps() {
-        if (typeCombo.getSelectedItem() == null) return false;
-        if (((Number) montantSpinner.getValue()).doubleValue() <= 0) return false;
-        if (deviseCombo.getSelectedItem() == null || ((String) deviseCombo.getSelectedItem()).length() != 3) return false;
-        if (categorieCombo.getSelectedItem() == null) return false;
-        return descriptionField.getText().trim().length() >= 3;
+        if (typeCombo.getSelectedItem() == null) {
+            JOptionPane.showMessageDialog(this, "⚠️ Veuillez choisir un type de transaction.", "Erreur", JOptionPane.ERROR_MESSAGE);
+            return false;
+        }
+        if (((Number) montantSpinner.getValue()).doubleValue() <= 0) {
+            JOptionPane.showMessageDialog(this, "⚠️ Le montant doit être supérieur à 0.", "Erreur", JOptionPane.ERROR_MESSAGE);
+            return false;
+        }
+        if (deviseCombo.getSelectedItem() == null || ((String) deviseCombo.getSelectedItem()).length() != 3) {
+            JOptionPane.showMessageDialog(this, "⚠️ Veuillez sélectionner une devise valide (3 lettres).", "Erreur", JOptionPane.ERROR_MESSAGE);
+            return false;
+        }
+        if (categorieCombo.getSelectedItem() == null) {
+            JOptionPane.showMessageDialog(this, "⚠️ Veuillez choisir une catégorie.", "Erreur", JOptionPane.ERROR_MESSAGE);
+            return false;
+        }
+        if (descriptionField.getText().trim().length() < 3) {
+            JOptionPane.showMessageDialog(this, "⚠️ La description doit contenir au moins 3 caractères.", "Erreur", JOptionPane.ERROR_MESSAGE);
+            return false;
+        }
+        return true;
     }
+
 
     // 🔹 Gestion Ajout/Modification / Stripe
     private void handleTransaction(boolean stripe) {

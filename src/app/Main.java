@@ -1,41 +1,25 @@
 package app;
 
-import model.Investissement;
 import model.Transaction;
+import model.Investissement;
 import model.Utilisateur;
-import service.InvestissementService;
 import service.TransactionService;
+import service.InvestissementService;
 
 import javax.swing.*;
 import javax.swing.table.AbstractTableModel;
-import javax.swing.table.DefaultTableModel;
-import javax.swing.table.TableRowSorter;
-import javax.swing.table.TableCellRenderer;
-import javax.swing.RowSorter.SortKey;
-import javax.swing.SortOrder;
-
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.util.List;
 
 public class Main extends JFrame {
 
     private final Utilisateur utilisateurConnecte;
-    private final InvestissementService investissementService;
-    private final TransactionService transactionService;
-    private JTable tableInvestissements;
-    private JTable tableTransactions;
-    private JButton triAsc, triDesc;
-    private String filtreTypeTransaction = "Tous"; // filtre actif
+    private final TransactionService transactionService = new TransactionService();
+    private final InvestissementService investissementService = new InvestissementService();
 
     public Main(Utilisateur utilisateurConnecte) {
         this.utilisateurConnecte = utilisateurConnecte;
-        this.investissementService = new InvestissementService();
-        this.transactionService = new TransactionService();
-
         initUI();
-        setupTables();
         setLocationRelativeTo(null);
     }
 
@@ -46,46 +30,28 @@ public class Main extends JFrame {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
 
-        // Ajout Sidebar avec utilisateurConnecte
-        add(new Sidebar(utilisateurConnecte), BorderLayout.WEST);
+        // Ajout Sidebar
+        add(new Sidebar(this), BorderLayout.WEST);
 
-        // Panel principal avec top panel + tables
-        JPanel mainPanel = new JPanel(new BorderLayout());
-        mainPanel.add(createTopPanel(), BorderLayout.NORTH);
-        mainPanel.add(createCenterPanel(), BorderLayout.CENTER);
-
-        add(mainPanel, BorderLayout.CENTER);
+        // Panel principal par défaut (Accueil)
+        add(createHomePanel(), BorderLayout.CENTER);
     }
 
     // === Sidebar interne ===
     private static class Sidebar extends JPanel {
-        public Sidebar(Utilisateur utilisateurConnecte) {
+        public Sidebar(Main mainFrame) {
             setBackground(new Color(45, 45, 45));
             setPreferredSize(new Dimension(200, 0));
-            setLayout(new GridLayout(4, 1, 0, 10));
+            setLayout(new GridLayout(5, 1, 0, 10));
 
-            add(createButton("Modifier Compte", e -> {
-                JFrame parent = (JFrame) SwingUtilities.getWindowAncestor(this);
-                if (parent instanceof Main main) main.openModifierCompte();
-            }));
-
-            add(createButton("Transactions", e -> {
-                JFrame parent = (JFrame) SwingUtilities.getWindowAncestor(this);
-                new ListeTransactionFrame(utilisateurConnecte).setVisible(true);
-            }));
-
-            add(createButton("Investissements", e -> {
-                JFrame parent = (JFrame) SwingUtilities.getWindowAncestor(this);
-                new ListeInvestissementFrame(utilisateurConnecte).setVisible(true);
-            }));
-
-            add(createButton("Déconnexion", e -> {
-                JFrame parent = (JFrame) SwingUtilities.getWindowAncestor(this);
-                if (parent instanceof Main main) main.seDeconnecter();
-            }));
+            add(createButton("Accueil", e -> mainFrame.showHomePanel()));
+            add(createButton("Transactions", e -> mainFrame.showTransactionPanel()));
+            add(createButton("Investissements", e -> mainFrame.showInvestissementPanel()));
+            add(createButton("Modifier Compte", e -> mainFrame.showModifierComptePanel()));
+            add(createButton("Déconnexion", e -> mainFrame.seDeconnecter()));
         }
 
-        private static JButton createButton(String text, ActionListener listener) {
+        private static JButton createButton(String text, java.awt.event.ActionListener listener) {
             JButton btn = new JButton(text);
             btn.setFocusPainted(false);
             btn.setBackground(new Color(70, 70, 70));
@@ -95,56 +61,90 @@ public class Main extends JFrame {
         }
     }
 
-    // === Top Panel ===
-    private JPanel createTopPanel() {
-        JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 5));
+    // === Panels dynamiques ===
+    public void showHomePanel() {
+        setContentPanel(createHomePanel());
+    }
 
-        // Tri des investissements
-        triAsc = new JButton("Trier ↑");
-        triDesc = new JButton("Trier ↓");
-        triAsc.addActionListener(e -> trierInvestissements(true));
-        triDesc.addActionListener(e -> trierInvestissements(false));
-        panel.add(triAsc);
-        panel.add(triDesc);
+    public void showTransactionPanel() {
+        List<Transaction> transactions = transactionService.getTransactionsByUtilisateur(utilisateurConnecte.getIdUtilisateur());
+        JTable table = new JTable(new TransactionTableModel(transactions));
 
-        // Filtre type transaction
-        String[] typesTransaction = {"Tous", "Dépense", "Revenu", "Paiement en ligne"};
-        JComboBox<String> typeCombo = new JComboBox<>(typesTransaction);
-        typeCombo.addActionListener(e -> {
-            filtreTypeTransaction = (String) typeCombo.getSelectedItem();
-            refreshTransactionTable();
-        });
-        panel.add(new JLabel("Filtrer par type:"));
-        panel.add(typeCombo);
+        JPanel panel = new JPanel(new BorderLayout());
+        JLabel titre = new JLabel("📊 Liste des Transactions");
+        titre.setFont(new Font("Arial", Font.BOLD, 18));
+        titre.setHorizontalAlignment(SwingConstants.CENTER);
+        panel.add(titre, BorderLayout.NORTH);
+        panel.add(new JScrollPane(table), BorderLayout.CENTER);
+
+        setContentPanel(panel);
+    }
+
+    public void showInvestissementPanel() {
+        List<Investissement> investissements = investissementService.getInvestissementsByUtilisateur(utilisateurConnecte.getIdUtilisateur());
+        JTable table = new JTable(new InvestissementTableModel(investissements));
+
+        JPanel panel = new JPanel(new BorderLayout());
+        JLabel titre = new JLabel("💼 Liste des Investissements");
+        titre.setFont(new Font("Arial", Font.BOLD, 18));
+        titre.setHorizontalAlignment(SwingConstants.CENTER);
+        panel.add(titre, BorderLayout.NORTH);
+        panel.add(new JScrollPane(table), BorderLayout.CENTER);
+
+        setContentPanel(panel);
+    }
+
+    public void showModifierComptePanel() {
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+
+        JLabel titre = new JLabel("👤 Modifier le compte");
+        titre.setFont(new Font("Arial", Font.BOLD, 22));
+        titre.setAlignmentX(Component.CENTER_ALIGNMENT);
+        panel.add(titre);
+        panel.add(Box.createRigidArea(new Dimension(0, 20)));
+
+        panel.add(new JLabel("Nom : " + utilisateurConnecte.getNom()));
+        panel.add(new JLabel("Prénom : " + utilisateurConnecte.getPrenom()));
+        panel.add(new JLabel("Email : " + utilisateurConnecte.getEmail()));
+        panel.add(new JLabel("Devise principale : " + utilisateurConnecte.getDevisePrincipale()));
+        panel.add(new JLabel("Objectif financier : " + utilisateurConnecte.getObjectifFinancier()));
+        panel.add(new JLabel("Date d'inscription : " + utilisateurConnecte.getDateInscription()));
+
+        setContentPanel(panel);
+    }
+
+    private JPanel createHomePanel() {
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+
+        JLabel titre = new JLabel("Bienvenue, " + utilisateurConnecte.getNom());
+        titre.setFont(new Font("Arial", Font.BOLD, 22));
+        titre.setAlignmentX(Component.CENTER_ALIGNMENT);
+        panel.add(titre);
+        panel.add(Box.createRigidArea(new Dimension(0, 20)));
+
+        panel.add(new JLabel("Nom : " + utilisateurConnecte.getNom()));
+        panel.add(new JLabel("Prénom : " + utilisateurConnecte.getPrenom()));
+        panel.add(new JLabel("Email : " + utilisateurConnecte.getEmail()));
+        panel.add(new JLabel("Devise principale : " + utilisateurConnecte.getDevisePrincipale()));
+        panel.add(new JLabel("Objectif financier : " + utilisateurConnecte.getObjectifFinancier()));
+        panel.add(new JLabel("Date d'inscription : " + utilisateurConnecte.getDateInscription()));
 
         return panel;
     }
 
-    // === Panel central ===
-    private JPanel createCenterPanel() {
-        JPanel panel = new JPanel(new GridLayout(2, 1, 5, 5));
-        tableInvestissements = new JTable();
-        panel.add(new JScrollPane(tableInvestissements));
-
-        tableTransactions = new JTable();
-        panel.add(new JScrollPane(tableTransactions));
-        return panel;
+    private void setContentPanel(JPanel newPanel) {
+        getContentPane().remove(1);
+        getContentPane().add(newPanel, BorderLayout.CENTER);
+        revalidate();
+        repaint();
     }
 
     // === Actions centralisées ===
-    private void openModifierCompte() {
-        new ModifierCompteFrame(utilisateurConnecte, this).setVisible(true);
-    }
-
-    private void openAjouterTransaction() {
-        new TransactionFrame(utilisateurConnecte, this).setVisible(true);
-    }
-
-    private void openAjouterInvestissement() {
-        new InvestissementFrame(utilisateurConnecte, this).setVisible(true);
-    }
-
-    private void seDeconnecter() {
+    public void seDeconnecter() {
         int confirm = JOptionPane.showConfirmDialog(this,
                 "Voulez-vous vraiment vous déconnecter ?", "Confirmer déconnexion",
                 JOptionPane.YES_NO_OPTION);
@@ -154,105 +154,57 @@ public class Main extends JFrame {
         }
     }
 
-    public void refreshUserInfo() {
-        setTitle("Gestion de " + utilisateurConnecte.getNom());
-    }
-
-    // === Gestion des tables ===
-    private void trierInvestissements(boolean asc) {
-        TableRowSorter<InvestissementTableModel> sorter =
-                new TableRowSorter<>((InvestissementTableModel) tableInvestissements.getModel());
-        sorter.setSortKeys(List.of(new SortKey(5, asc ? SortOrder.ASCENDING : SortOrder.DESCENDING)));
-        tableInvestissements.setRowSorter(sorter);
-    }
-
-    private void setupTables() {
-        refreshInvestissementTable();
-        refreshTransactionTable();
-    }
-
-    public void refreshInvestissementTable() {
-        List<Investissement> investissements = investissementService
-                .getInvestissementsByUtilisateur(utilisateurConnecte.getIdUtilisateur());
-        refreshInvestissementTable(investissements);
-    }
-
-    public void refreshInvestissementTable(List<Investissement> investissements) {
-        tableInvestissements.setModel(new InvestissementTableModel(investissements));
-        setupTableButtons(tableInvestissements, investissements, 6, 7);
-    }
-
-    public void refreshTransactionTable() {
-        List<Transaction> transactions = transactionService.getTransactionsByUtilisateur(utilisateurConnecte.getIdUtilisateur());
-
-        // Appliquer le filtre si nécessaire
-        if (!"Tous".equals(filtreTypeTransaction)) {
-            transactions.removeIf(t -> !t.getType().equals(filtreTypeTransaction));
-        }
-
-        DefaultTableModel model = new DefaultTableModel(
-                new Object[]{"ID", "Type", "Montant", "Devise", "Catégorie", "Description", "Date", "Modifier", "Supprimer"},
-                0
-        );
-
-        for (Transaction t : transactions) {
-            model.addRow(new Object[]{
-                    t.getIdTransaction(),
-                    t.getType(),
-                    t.getMontant(),
-                    t.getDevise(),
-                    t.getCategorie(),
-                    t.getDescription(),
-                    t.getDateTransaction(),
-                    "Modifier",
-                    "Supprimer"
-            });
-        }
-
-        tableTransactions.setModel(model);
-        setupTableButtons(tableTransactions, transactions, 7, 8);
-    }
-
-    private <T> void setupTableButtons(JTable table, List<T> items, int editCol, int deleteCol) {
-        table.getColumnModel().getColumn(editCol).setCellRenderer(new ButtonRenderer());
-        table.getColumnModel().getColumn(editCol).setCellEditor(new ButtonEditor(
-                new JCheckBox(), "Modifier", row -> handleEditAction(items.get(row))));
-
-        table.getColumnModel().getColumn(deleteCol).setCellRenderer(new ButtonRenderer());
-        table.getColumnModel().getColumn(deleteCol).setCellEditor(new ButtonEditor(
-                new JCheckBox(), "Supprimer", row -> handleDeleteAction(items.get(row))));
-    }
-
-    private void handleEditAction(Object item) {
-        if (item instanceof Investissement)
-            new InvestissementFrame(utilisateurConnecte, this, (Investissement) item).setVisible(true);
-        else if (item instanceof Transaction)
-        	new TransactionFrame(utilisateurConnecte, this, (Transaction) item).setVisible(true);
-    }
-
-    private void handleDeleteAction(Object item) {
-        int confirm = JOptionPane.showConfirmDialog(this,
-                "Voulez-vous vraiment supprimer cet élément ?", "Confirmer", JOptionPane.YES_NO_OPTION);
-        if (confirm == JOptionPane.YES_OPTION) {
-            if (item instanceof Investissement) {
-                investissementService.delete(((Investissement) item).getIdInvestissement());
-                refreshInvestissementTable();
-            } else if (item instanceof Transaction) {
-                transactionService.delete(((Transaction) item).getIdTransaction());
-                refreshTransactionTable();
-            }
-        }
-    }
-
     // === Table Models ===
+    private static class TransactionTableModel extends AbstractTableModel {
+        private final List<Transaction> transactions;
+        private final String[] colonnes = {"ID", "Type", "Montant", "Devise", "Catégorie", "Date", "Description"};
+
+        public TransactionTableModel(List<Transaction> transactions) {
+            this.transactions = transactions;
+        }
+
+        @Override
+        public int getRowCount() { return transactions.size(); }
+
+        @Override
+        public int getColumnCount() { return colonnes.length; }
+
+        @Override
+        public String getColumnName(int column) { return colonnes[column]; }
+
+        @Override
+        public Object getValueAt(int row, int col) {
+            Transaction t = transactions.get(row);
+            return switch (col) {
+                case 0 -> t.getIdTransaction();
+                case 1 -> t.getType();
+                case 2 -> t.getMontant();
+                case 3 -> t.getDevise();
+                case 4 -> t.getCategorie();
+                case 5 -> t.getDateTransaction();
+                case 6 -> t.getDescription();
+                default -> null;
+            };
+        }
+    }
+
     private static class InvestissementTableModel extends AbstractTableModel {
         private final List<Investissement> investissements;
-        private final String[] colonnes = {"ID", "Type", "Symbole", "Quantité", "Prix Unitaire", "Date Achat", "Modifier", "Supprimer"};
-        public InvestissementTableModel(List<Investissement> investissements) { this.investissements = investissements; }
-        @Override public int getRowCount() { return investissements.size(); }
-        @Override public int getColumnCount() { return colonnes.length; }
-        @Override public String getColumnName(int column) { return colonnes[column]; }
-        @Override public boolean isCellEditable(int row, int col) { return col >= 6; }
+        private final String[] colonnes = {"ID", "Type", "Symbole", "Quantité", "Prix Unitaire", "Date Achat"};
+
+        public InvestissementTableModel(List<Investissement> investissements) {
+            this.investissements = investissements;
+        }
+
+        @Override
+        public int getRowCount() { return investissements.size(); }
+
+        @Override
+        public int getColumnCount() { return colonnes.length; }
+
+        @Override
+        public String getColumnName(int column) { return colonnes[column]; }
+
         @Override
         public Object getValueAt(int row, int col) {
             Investissement inv = investissements.get(row);
@@ -263,41 +215,9 @@ public class Main extends JFrame {
                 case 3 -> inv.getQuantite();
                 case 4 -> inv.getPrixAchatUnitaire();
                 case 5 -> inv.getDateAchat();
-                case 6 -> "Modifier";
-                case 7 -> "Supprimer";
                 default -> null;
             };
         }
-    }
-
-    // === Boutons dans tables ===
-    static class ButtonRenderer extends JButton implements TableCellRenderer {
-        public ButtonRenderer() { setOpaque(true); }
-        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
-            setText((value == null) ? "" : value.toString()); return this;
-        }
-    }
-
-    static class ButtonEditor extends DefaultCellEditor {
-        protected JButton button;
-        private final String label;
-        private boolean clicked;
-        private final RowAction action;
-        private int row;
-        public interface RowAction { void perform(int row); }
-        public ButtonEditor(JCheckBox checkBox, String label, RowAction action) {
-            super(checkBox);
-            this.button = new JButton();
-            this.button.setOpaque(true);
-            this.label = label;
-            this.action = action;
-            button.addActionListener((ActionEvent e) -> fireEditingStopped());
-        }
-        public Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected, int row, int column) {
-            this.row = row; button.setText(label); clicked = true; return button;
-        }
-        public Object getCellEditorValue() { if (clicked) action.perform(row); clicked = false; return label; }
-        public boolean stopCellEditing() { clicked = false; return super.stopCellEditing(); }
     }
 
     // === Main ===
@@ -306,6 +226,10 @@ public class Main extends JFrame {
             Utilisateur u = new Utilisateur();
             u.setIdUtilisateur(1);
             u.setNom("Youssef");
+            u.setPrenom("Mellouli");
+            u.setEmail("youssef@example.com");
+            u.setDevisePrincipale("TND");
+            u.setObjectifFinancier("Épargne 2025");
             new Main(u).setVisible(true);
         });
     }
