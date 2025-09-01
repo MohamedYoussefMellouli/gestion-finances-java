@@ -50,16 +50,22 @@ public class Main extends JFrame {
         // Transactions
         transactionTableModel = new TransactionTableModel(new ArrayList<>());
         transactionTable = new JTable(transactionTableModel);
-        transactionTable.getColumn("Actions").setCellRenderer(new ButtonRendererTransaction());
-        transactionTable.getColumn("Actions").setCellEditor(new ButtonEditorTransaction(transactionTableModel, this));
-        transactionTable.getColumn("Actions").setPreferredWidth(160);
+        configureTable(transactionTable, new ButtonRendererTransaction(), new ButtonEditorTransaction(transactionTableModel, this));
+        transactionTable.getColumn("Actions").setPreferredWidth(200);
 
         // Investissements
         investissementTableModel = new InvestissementTableModel(new ArrayList<>());
         investissementTable = new JTable(investissementTableModel);
-        investissementTable.getColumn("Actions").setCellRenderer(new ButtonRendererInvestissement());
-        investissementTable.getColumn("Actions").setCellEditor(new ButtonEditorInvestissement(investissementTableModel, this));
-        investissementTable.getColumn("Actions").setPreferredWidth(160);
+        configureTable(investissementTable, new ButtonRendererInvestissement(), new ButtonEditorInvestissement(investissementTableModel, this));
+        investissementTable.getColumn("Actions").setPreferredWidth(200);
+    }
+
+    // Méthode pour configurer les tables de manière réutilisable
+    private void configureTable(JTable table, TableCellRenderer renderer, TableCellEditor editor) {
+        table.getColumn("Actions").setCellRenderer(renderer);
+        table.getColumn("Actions").setCellEditor(editor);
+        table.setRowHeight(30); // Ajuster la hauteur des lignes pour les boutons
+        table.setDefaultEditor(Object.class, editor); // Activer l'édition par défaut
     }
 
     // === Sidebar interne ===
@@ -96,7 +102,7 @@ public class Main extends JFrame {
         JPanel northPanel = new JPanel(new GridLayout(1, 2));
         JLabel titre = new JLabel("📊 Liste des Transactions");
         titre.setFont(new Font("Arial", Font.BOLD, 18));
-        titre.setHorizontalAlignment(SwingConstants.LEFT); // Alignement à gauche
+        titre.setHorizontalAlignment(SwingConstants.LEFT);
         northPanel.add(titre);
 
         // Panneau de filtre à droite
@@ -108,9 +114,8 @@ public class Main extends JFrame {
         filterButton.addActionListener(e -> {
             String selectedType = (String) typeFilter.getSelectedItem();
             if ("Tous".equals(selectedType)) {
-                refreshTransactionTable(); // Recharge toutes les transactions
+                refreshTransactionTable();
             } else {
-                // Filtrer par type
                 TransactionService service = new TransactionService();
                 List<Transaction> filteredTransactions = service.filterTransactionsByType(utilisateurConnecte.getIdUtilisateur(), selectedType);
                 transactionTableModel.setTransactions(filteredTransactions);
@@ -120,7 +125,7 @@ public class Main extends JFrame {
         filterPanel.add(new JLabel("Filtrer par type : "));
         filterPanel.add(typeFilter);
         filterPanel.add(filterButton);
-        northPanel.add(filterPanel); // Ajout du filtre à droite
+        northPanel.add(filterPanel);
 
         panel.add(northPanel, BorderLayout.NORTH);
 
@@ -129,17 +134,23 @@ public class Main extends JFrame {
         panel.add(ajouterBtn, BorderLayout.SOUTH);
 
         panel.add(new JScrollPane(transactionTable), BorderLayout.CENTER);
+
         setContentPanel(panel);
 
         refreshTransactionTable();
     }
+
     public void showInvestissementPanel() {
         JPanel panel = new JPanel(new BorderLayout());
-        JLabel titre = new JLabel("💼 Liste des Investissements", SwingConstants.CENTER);
+        
+        // Panneau nord avec titre à gauche et filtre à droite
+        JPanel northPanel = new JPanel(new GridLayout(1, 2));
+        JLabel titre = new JLabel("💼 Liste des Investissements");
         titre.setFont(new Font("Arial", Font.BOLD, 18));
-        panel.add(titre, BorderLayout.NORTH);
+        titre.setHorizontalAlignment(SwingConstants.LEFT);
+        northPanel.add(titre);
 
-        // Panneau de filtre en haut
+        // Panneau de filtre à droite
         JPanel filterPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
         String[] sortOptions = {"Tous", "Quantité Croissante", "Quantité Décroissante"};
         JComboBox<String> sortFilter = new JComboBox<>(sortOptions);
@@ -148,9 +159,8 @@ public class Main extends JFrame {
         filterButton.addActionListener(e -> {
             String selectedOption = (String) sortFilter.getSelectedItem();
             if ("Tous".equals(selectedOption)) {
-                refreshInvestissementTable(); // Recharge tous les investissements
+                refreshInvestissementTable();
             } else {
-                // Filtrer par ordre de quantité
                 InvestissementService service = new InvestissementService();
                 boolean ascending = "Quantité Croissante".equals(selectedOption);
                 List<Investissement> sortedInvestissements = service.getInvestissementsByUtilisateurSortedByQuantite(
@@ -162,17 +172,21 @@ public class Main extends JFrame {
         filterPanel.add(new JLabel("Trier par : "));
         filterPanel.add(sortFilter);
         filterPanel.add(filterButton);
-        panel.add(filterPanel, BorderLayout.NORTH); // Ajout du panneau de filtre en haut
+        northPanel.add(filterPanel);
+
+        panel.add(northPanel, BorderLayout.NORTH);
 
         JButton ajouterBtn = new JButton("Ajouter Investissement");
         ajouterBtn.addActionListener(e -> new InvestissementFrame(utilisateurConnecte, this).setVisible(true));
         panel.add(ajouterBtn, BorderLayout.SOUTH);
 
         panel.add(new JScrollPane(investissementTable), BorderLayout.CENTER);
+
         setContentPanel(panel);
 
         refreshInvestissementTable();
     }
+
     public void showModifierComptePanel() {
         JPanel panel = new JPanel();
         panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
@@ -245,7 +259,6 @@ public class Main extends JFrame {
         gbc.gridy = 7;
         panel.add(new JLabel("Date d'inscription:"), gbc);
         gbc.gridx = 1;
-        // Conversion de LocalDate en String
         String dateInscriptionStr = utilisateurConnecte.getDateInscription() != null 
             ? utilisateurConnecte.getDateInscription().toString() 
             : "Non définie";
@@ -260,13 +273,11 @@ public class Main extends JFrame {
         panel.add(saveButton, gbc);
 
         saveButton.addActionListener(e -> {
-            // ✅ Vérification champs obligatoires
             if (nomField.getText().trim().isEmpty() ||
                 prenomField.getText().trim().isEmpty() ||
                 emailField.getText().trim().isEmpty() ||
                 deviseCombo.getSelectedItem() == null ||
                 objectifField.getText().trim().isEmpty()) {
-
                 JOptionPane.showMessageDialog(this,
                         "Tous les champs sont obligatoires (le mot de passe seulement si vous voulez le changer).",
                         "Erreur",
@@ -274,7 +285,6 @@ public class Main extends JFrame {
                 return;
             }
 
-            // Validation de l'email
             String email = emailField.getText().trim();
             String emailRegex = "^[A-Za-z0-9+_.-]+@(.+)$";
             if (!email.matches(emailRegex)) {
@@ -285,26 +295,11 @@ public class Main extends JFrame {
                 return;
             }
 
-            // Validation du mot de passe (si modifié)
             String newPassword = new String(passwordField.getPassword()).trim();
             if (!newPassword.isEmpty()) {
-                if (newPassword.length() < 8) {
+                if (newPassword.length() < 8 || !newPassword.matches(".*[A-Z].*") || !newPassword.matches(".*[0-9].*")) {
                     JOptionPane.showMessageDialog(this,
-                            "Le mot de passe doit contenir au moins 8 caractères.",
-                            "Erreur",
-                            JOptionPane.ERROR_MESSAGE);
-                    return;
-                }
-                if (!newPassword.matches(".*[A-Z].*")) {
-                    JOptionPane.showMessageDialog(this,
-                            "Le mot de passe doit contenir au moins une majuscule.",
-                            "Erreur",
-                            JOptionPane.ERROR_MESSAGE);
-                    return;
-                }
-                if (!newPassword.matches(".*[0-9].*")) {
-                    JOptionPane.showMessageDialog(this,
-                            "Le mot de passe doit contenir au moins un numéro.",
+                            "Le mot de passe doit contenir au moins 8 caractères, une majuscule et un numéro.",
                             "Erreur",
                             JOptionPane.ERROR_MESSAGE);
                     return;
@@ -319,16 +314,12 @@ public class Main extends JFrame {
                 utilisateurConnecte.setObjectifFinancier(objectifField.getText().trim());
 
                 if (!newPassword.isEmpty()) {
-                    // 🔹 Hash le mot de passe avant sauvegarde
                     utilisateurService.setPassword(utilisateurConnecte, newPassword);
                 } else {
-                    // Update sans changer le mot de passe
                     utilisateurService.update(utilisateurConnecte);
                 }
 
                 JOptionPane.showMessageDialog(this, "Compte mis à jour avec succès !");
-
-                // Rafraîchir l'affichage
                 refreshUserInfo();
 
             } catch (Exception ex) {
@@ -397,9 +388,9 @@ public class Main extends JFrame {
 
     // Nouvelle méthode pour rafraîchir les infos utilisateur
     public void refreshUserInfo() {
-        setTitle("Gestion de " + utilisateurConnecte.getNom()); // Mise à jour du titre de la fenêtre
-        showHomePanel(); // Rafraîchit le panneau d'accueil
-        showModifierComptePanel(); // Rafraîchit le panneau de modification si ouvert
+        setTitle("Gestion de " + utilisateurConnecte.getNom());
+        showHomePanel();
+        showModifierComptePanel();
         System.out.println("Infos utilisateur rafraîchies: " + utilisateurConnecte.getNom());
     }
 
@@ -419,7 +410,7 @@ public class Main extends JFrame {
         @Override
         public Object getValueAt(int row, int col) {
             Transaction t = transactions.get(row);
-            if(col == 7) return "Actions";
+            if (col == 7) return "Actions";
             return switch (col) {
                 case 0 -> t.getIdTransaction();
                 case 1 -> t.getType();
@@ -457,7 +448,7 @@ public class Main extends JFrame {
         @Override
         public Object getValueAt(int row, int col) {
             Investissement inv = investissements.get(row);
-            if(col == 6) return "Actions";
+            if (col == 6) return "Actions";
             return switch (col) {
                 case 0 -> inv.getIdInvestissement();
                 case 1 -> inv.getType();
@@ -481,16 +472,21 @@ public class Main extends JFrame {
 
     // === Boutons Transactions ===
     private static class ButtonRendererTransaction extends JPanel implements TableCellRenderer {
+        private final JButton modifierBtn = new JButton("Modifier");
+        private final JButton supprimerBtn = new JButton("Supprimer");
+
         public ButtonRendererTransaction() {
-            setLayout(new FlowLayout(FlowLayout.CENTER, 5, 0));
-            add(new JButton("Modifier"));
-            add(new JButton("Supprimer"));
+            setLayout(new GridLayout(1, 2, 5, 0));
+            add(modifierBtn);
+            add(supprimerBtn);
+            setOpaque(true);
         }
+
         @Override
         public Component getTableCellRendererComponent(JTable table, Object value,
                                                        boolean isSelected, boolean hasFocus,
                                                        int row, int column) {
-            this.setPreferredSize(new Dimension(160, 30));
+            setBackground(isSelected ? table.getSelectionBackground() : table.getBackground());
             return this;
         }
     }
@@ -508,27 +504,23 @@ public class Main extends JFrame {
             this.model = model;
             this.mainFrame = mainFrame;
 
-            panel.setLayout(new FlowLayout(FlowLayout.CENTER, 5, 0));
+            panel.setLayout(new GridLayout(1, 2, 5, 0));
             panel.add(modifierBtn);
             panel.add(supprimerBtn);
 
             modifierBtn.addActionListener(e -> {
-                System.out.println("Bouton Modifier cliqué pour transaction ID: " + (currentTransaction != null ? currentTransaction.getIdTransaction() : "null"));
                 if (currentTransaction != null) {
                     try {
                         new TransactionFrame(mainFrame.utilisateurConnecte, mainFrame, currentTransaction).setVisible(true);
                         mainFrame.refreshTransactionTable();
-                        System.out.println("Tableau rafraîchi après modification.");
                     } catch (Exception ex) {
                         JOptionPane.showMessageDialog(panel, "Erreur lors de la modification : " + ex.getMessage(), "Erreur", JOptionPane.ERROR_MESSAGE);
-                        System.out.println("Erreur: " + ex.getMessage());
                     }
                 }
                 fireEditingStopped();
             });
 
             supprimerBtn.addActionListener(e -> {
-                System.out.println("Bouton Supprimer cliqué pour transaction ID: " + (currentTransaction != null ? currentTransaction.getIdTransaction() : "null"));
                 if (currentTransaction != null) {
                     int confirm = JOptionPane.showConfirmDialog(panel, "Supprimer cette transaction ?", "Confirmer", JOptionPane.YES_NO_OPTION);
                     if (confirm == JOptionPane.YES_OPTION) {
@@ -536,10 +528,8 @@ public class Main extends JFrame {
                             new TransactionService().delete(currentTransaction.getIdTransaction());
                             model.removeTransaction(currentTransaction);
                             mainFrame.refreshTransactionTable();
-                            System.out.println("Transaction supprimée et tableau rafraîchi.");
                         } catch (Exception ex) {
                             JOptionPane.showMessageDialog(panel, "Erreur lors de la suppression : " + ex.getMessage(), "Erreur", JOptionPane.ERROR_MESSAGE);
-                            System.out.println("Erreur: " + ex.getMessage());
                         }
                     }
                 }
@@ -550,7 +540,6 @@ public class Main extends JFrame {
         @Override
         public Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected, int row, int column) {
             currentTransaction = model.getTransactionAt(row);
-            System.out.println("Édition pour transaction ID: " + (currentTransaction != null ? currentTransaction.getIdTransaction() : "null"));
             return panel;
         }
 
@@ -562,16 +551,21 @@ public class Main extends JFrame {
 
     // === Boutons Investissements ===
     private static class ButtonRendererInvestissement extends JPanel implements TableCellRenderer {
+        private final JButton modifierBtn = new JButton("Modifier");
+        private final JButton supprimerBtn = new JButton("Supprimer");
+
         public ButtonRendererInvestissement() {
-            setLayout(new FlowLayout(FlowLayout.CENTER, 5, 0));
-            add(new JButton("Modifier"));
-            add(new JButton("Supprimer"));
+            setLayout(new GridLayout(1, 2, 5, 0));
+            add(modifierBtn);
+            add(supprimerBtn);
+            setOpaque(true);
         }
+
         @Override
         public Component getTableCellRendererComponent(JTable table, Object value,
                                                        boolean isSelected, boolean hasFocus,
                                                        int row, int column) {
-            this.setPreferredSize(new Dimension(160, 30));
+            setBackground(isSelected ? table.getSelectionBackground() : table.getBackground());
             return this;
         }
     }
@@ -589,27 +583,23 @@ public class Main extends JFrame {
             this.model = model;
             this.mainFrame = mainFrame;
 
-            panel.setLayout(new FlowLayout(FlowLayout.CENTER, 5, 0));
+            panel.setLayout(new GridLayout(1, 2, 5, 0));
             panel.add(modifierBtn);
             panel.add(supprimerBtn);
 
             modifierBtn.addActionListener(e -> {
-                System.out.println("Bouton Modifier cliqué pour investissement ID: " + (currentInvestissement != null ? currentInvestissement.getIdInvestissement() : "null"));
                 if (currentInvestissement != null) {
                     try {
                         new InvestissementFrame(mainFrame.utilisateurConnecte, mainFrame, currentInvestissement).setVisible(true);
                         mainFrame.refreshInvestissementTable();
-                        System.out.println("Tableau rafraîchi après modification.");
                     } catch (Exception ex) {
                         JOptionPane.showMessageDialog(panel, "Erreur lors de la modification : " + ex.getMessage(), "Erreur", JOptionPane.ERROR_MESSAGE);
-                        System.out.println("Erreur: " + ex.getMessage());
                     }
                 }
                 fireEditingStopped();
             });
 
             supprimerBtn.addActionListener(e -> {
-                System.out.println("Bouton Supprimer cliqué pour investissement ID: " + (currentInvestissement != null ? currentInvestissement.getIdInvestissement() : "null"));
                 if (currentInvestissement != null) {
                     int confirm = JOptionPane.showConfirmDialog(panel, "Supprimer cet investissement ?", "Confirmer", JOptionPane.YES_NO_OPTION);
                     if (confirm == JOptionPane.YES_OPTION) {
@@ -617,10 +607,8 @@ public class Main extends JFrame {
                             new InvestissementService().delete(currentInvestissement.getIdInvestissement());
                             model.removeInvestissement(currentInvestissement);
                             mainFrame.refreshInvestissementTable();
-                            System.out.println("Investissement supprimé et tableau rafraîchi.");
                         } catch (Exception ex) {
                             JOptionPane.showMessageDialog(panel, "Erreur lors de la suppression : " + ex.getMessage(), "Erreur", JOptionPane.ERROR_MESSAGE);
-                            System.out.println("Erreur: " + ex.getMessage());
                         }
                     }
                 }
@@ -631,7 +619,6 @@ public class Main extends JFrame {
         @Override
         public Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected, int row, int column) {
             currentInvestissement = model.getInvestissementAt(row);
-            System.out.println("Édition pour investissement ID: " + (currentInvestissement != null ? currentInvestissement.getIdInvestissement() : "null"));
             return panel;
         }
 
