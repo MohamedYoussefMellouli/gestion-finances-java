@@ -81,36 +81,49 @@ public class InvestissementFrame extends JFrame {
     // 🔹 Gestion Ajout / Modification
     private void handleInvestissementAction() {
         try {
-            String type = ((String) typeCombo.getSelectedItem()).trim();
-            String symbole = ((String) symboleCombo.getSelectedItem()).trim();
+            String type = (typeCombo.getSelectedItem() != null) ? ((String) typeCombo.getSelectedItem()).trim() : "";
+            String symbole = (symboleCombo.getSelectedItem() != null) ? ((String) symboleCombo.getSelectedItem()).trim() : "";
             double quantite = ((Number) quantiteSpinner.getValue()).doubleValue();
             double prix = Double.parseDouble(prixField.getText().trim());
 
-            if (quantite <= 0) {
-                JOptionPane.showMessageDialog(this, "La quantité doit être supérieure à 0.", "Erreur", JOptionPane.ERROR_MESSAGE);
-                return;
-            }
             if (type.isEmpty() || symbole.isEmpty()) {
                 JOptionPane.showMessageDialog(this, "Type et symbole sont obligatoires.", "Erreur", JOptionPane.ERROR_MESSAGE);
                 return;
             }
+            if (quantite <= 0) {
+                JOptionPane.showMessageDialog(this, "La quantité doit être supérieure à 0.", "Erreur", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
 
             if (investissement == null) {
-                // ✅ Ajout
-                Investissement inv = new Investissement(utilisateurConnecte.getIdUtilisateur(), type, symbole, quantite, prix, LocalDate.now());
+                // Ajout
+                Investissement inv = new Investissement(
+                    utilisateurConnecte.getIdUtilisateur(),
+                    type,
+                    symbole,
+                    quantite,
+                    prix,
+                    LocalDate.now() // Date actuelle pour nouvel investissement
+                );
                 service.ajouter(inv);
                 JOptionPane.showMessageDialog(this, "Investissement ajouté !");
             } else {
-                // ✅ Modification
+                // Modification
                 investissement.setType(type);
                 investissement.setSymbole(symbole);
                 investissement.setQuantite(quantite);
                 investissement.setPrixAchatUnitaire(prix);
+
+                // 🔹 Assurer que la date n'est jamais null
+                if (investissement.getDateAchat() == null) {
+                    investissement.setDateAchat(LocalDate.now());
+                }
+
                 service.update(investissement);
                 JOptionPane.showMessageDialog(this, "Investissement mis à jour !");
             }
 
-            if (parentMain != null) parentMain.refreshInvestissementTable(); // 🔹 Rafraîchir la table principale
+            if (parentMain != null) parentMain.refreshInvestissementTable(); // Rafraîchir JTable
             dispose();
 
         } catch (NumberFormatException ex) {
@@ -118,3 +131,4 @@ public class InvestissementFrame extends JFrame {
         }
     }
 }
+

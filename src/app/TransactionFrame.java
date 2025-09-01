@@ -153,7 +153,6 @@ public class TransactionFrame extends JFrame {
     }
 
     // 🔹 Validation simple
- // 🔹 Validation avec messages d'erreur
     private boolean validerChamps() {
         if (typeCombo.getSelectedItem() == null) {
             JOptionPane.showMessageDialog(this, "⚠️ Veuillez choisir un type de transaction.", "Erreur", JOptionPane.ERROR_MESSAGE);
@@ -177,7 +176,6 @@ public class TransactionFrame extends JFrame {
         }
         return true;
     }
-
 
     // 🔹 Gestion Ajout/Modification / Stripe
     private void handleTransaction(boolean stripe) {
