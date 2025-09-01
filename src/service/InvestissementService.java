@@ -125,6 +125,7 @@ public class InvestissementService {
             throw new RuntimeException("Erreur suppression investissement: " + e.getMessage(), e);
         }
     }
+
     public boolean mettreAJourMotDePasseParNumero(String telephone, String nouveauMdp) {
         String sql = "UPDATE utilisateur SET motdepasse = ? WHERE telephone = ?";
         try (Connection conn = DatabaseConnection.getConnection();
@@ -140,11 +141,37 @@ public class InvestissementService {
             return false;
         }
     }
+
     private String generateOTP() {
         Random rand = new Random();
         int otp = 1000 + rand.nextInt(9000); // entre 1000 et 9999
         return String.valueOf(otp);
     }
 
-
+    // 🔹 Récupérer les investissements d'un utilisateur triés par quantité
+    public List<Investissement> getInvestissementsByUtilisateurSortedByQuantite(int idUtilisateur, boolean ascending) {
+        List<Investissement> investissements = new ArrayList<>();
+        String sql = "SELECT id_investissement, id_utilisateur_investissement, type, symbole, quantite, prixachatunitaire, dateachat " +
+                     "FROM investissement WHERE id_utilisateur_investissement = ? ORDER BY quantite " +
+                     (ascending ? "ASC" : "DESC");
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, idUtilisateur);
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                Investissement inv = new Investissement();
+                inv.setIdInvestissement(rs.getInt("id_investissement"));
+                inv.setIdUtilisateurInvestissement(rs.getInt("id_utilisateur_investissement"));
+                inv.setType(rs.getString("type"));
+                inv.setSymbole(rs.getString("symbole"));
+                inv.setQuantite(rs.getDouble("quantite"));
+                inv.setPrixAchatUnitaire(rs.getDouble("prixachatunitaire"));
+                inv.setDateAchat(rs.getDate("dateachat").toLocalDate());
+                investissements.add(inv);
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Erreur récupération investissements triés par quantité : " + e.getMessage(), e);
+        }
+        return investissements;
+    }
 }

@@ -74,8 +74,6 @@ public class TransactionService {
         return list;
     }
 
-    // 🔹 Récupérer toutes les transactions d'un utilisateur
-
     // 🔹 Récupérer une transaction par ID
     public Transaction getById(int id) {
         String sql = "SELECT * FROM transaction WHERE id_transaction = ?";
@@ -124,7 +122,8 @@ public class TransactionService {
             throw new RuntimeException("Erreur mise à jour transaction : " + e.getMessage(), e);
         }
     }
- // 🔹 Récupérer toutes les transactions
+
+    // 🔹 Récupérer toutes les transactions
     public List<Transaction> getAll() {
         List<Transaction> list = new ArrayList<>();
         String sql = "SELECT * FROM transaction ORDER BY datetransaction DESC";
@@ -166,5 +165,35 @@ public class TransactionService {
         } catch (SQLException e) {
             throw new RuntimeException("Erreur suppression transaction : " + e.getMessage(), e);
         }
+    }
+
+    // 🔹 Filtrer les transactions par type (Dépense, Revenu, Paiement en ligne)
+    public List<Transaction> filterTransactionsByType(int idUtilisateur, String type) {
+        List<Transaction> list = new ArrayList<>();
+        String sql = "SELECT * FROM transaction WHERE utilisateurid_transaction = ? AND type = ? ORDER BY datetransaction DESC";
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, idUtilisateur);
+            stmt.setString(2, type);
+            ResultSet rs = stmt.executeQuery();
+
+            while (rs.next()) {
+                Transaction t = new Transaction();
+                t.setIdTransaction(rs.getInt("id_transaction"));
+                t.setUtilisateurId(rs.getInt("utilisateurid_transaction"));
+                t.setType(rs.getString("type"));
+                t.setMontant(rs.getDouble("montant"));
+                t.setDevise(rs.getString("devise"));
+                t.setCategorie(rs.getString("categorie"));
+                t.setDateTransaction(rs.getDate("datetransaction").toLocalDate());
+                t.setDescription(rs.getString("description"));
+                list.add(t);
+            }
+
+        } catch (SQLException e) {
+            throw new RuntimeException("Erreur lors du filtrage des transactions : " + e.getMessage(), e);
+        }
+        return list;
     }
 }

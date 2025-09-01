@@ -91,9 +91,38 @@ public class Main extends JFrame {
 
     public void showTransactionPanel() {
         JPanel panel = new JPanel(new BorderLayout());
-        JLabel titre = new JLabel("📊 Liste des Transactions", SwingConstants.CENTER);
+        
+        // Panneau nord avec titre à gauche et filtre à droite
+        JPanel northPanel = new JPanel(new GridLayout(1, 2));
+        JLabel titre = new JLabel("📊 Liste des Transactions");
         titre.setFont(new Font("Arial", Font.BOLD, 18));
-        panel.add(titre, BorderLayout.NORTH);
+        titre.setHorizontalAlignment(SwingConstants.LEFT); // Alignement à gauche
+        northPanel.add(titre);
+
+        // Panneau de filtre à droite
+        JPanel filterPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        String[] types = {"Tous", "Dépense", "Revenu", "Paiement en ligne"};
+        JComboBox<String> typeFilter = new JComboBox<>(types);
+        JButton filterButton = new JButton("Filtrer");
+        
+        filterButton.addActionListener(e -> {
+            String selectedType = (String) typeFilter.getSelectedItem();
+            if ("Tous".equals(selectedType)) {
+                refreshTransactionTable(); // Recharge toutes les transactions
+            } else {
+                // Filtrer par type
+                TransactionService service = new TransactionService();
+                List<Transaction> filteredTransactions = service.filterTransactionsByType(utilisateurConnecte.getIdUtilisateur(), selectedType);
+                transactionTableModel.setTransactions(filteredTransactions);
+                System.out.println("Filtre appliqué pour type : " + selectedType + " avec " + filteredTransactions.size() + " entrées.");
+            }
+        });
+        filterPanel.add(new JLabel("Filtrer par type : "));
+        filterPanel.add(typeFilter);
+        filterPanel.add(filterButton);
+        northPanel.add(filterPanel); // Ajout du filtre à droite
+
+        panel.add(northPanel, BorderLayout.NORTH);
 
         JButton ajouterBtn = new JButton("Ajouter Transaction");
         ajouterBtn.addActionListener(e -> new TransactionFrame(utilisateurConnecte, this).setVisible(true));
@@ -104,12 +133,36 @@ public class Main extends JFrame {
 
         refreshTransactionTable();
     }
-
     public void showInvestissementPanel() {
         JPanel panel = new JPanel(new BorderLayout());
         JLabel titre = new JLabel("💼 Liste des Investissements", SwingConstants.CENTER);
         titre.setFont(new Font("Arial", Font.BOLD, 18));
         panel.add(titre, BorderLayout.NORTH);
+
+        // Panneau de filtre en haut
+        JPanel filterPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        String[] sortOptions = {"Tous", "Quantité Croissante", "Quantité Décroissante"};
+        JComboBox<String> sortFilter = new JComboBox<>(sortOptions);
+        JButton filterButton = new JButton("Filtrer");
+        
+        filterButton.addActionListener(e -> {
+            String selectedOption = (String) sortFilter.getSelectedItem();
+            if ("Tous".equals(selectedOption)) {
+                refreshInvestissementTable(); // Recharge tous les investissements
+            } else {
+                // Filtrer par ordre de quantité
+                InvestissementService service = new InvestissementService();
+                boolean ascending = "Quantité Croissante".equals(selectedOption);
+                List<Investissement> sortedInvestissements = service.getInvestissementsByUtilisateurSortedByQuantite(
+                    utilisateurConnecte.getIdUtilisateur(), ascending);
+                investissementTableModel.setInvestissements(sortedInvestissements);
+                System.out.println("Filtre appliqué pour : " + selectedOption + " avec " + sortedInvestissements.size() + " entrées.");
+            }
+        });
+        filterPanel.add(new JLabel("Trier par : "));
+        filterPanel.add(sortFilter);
+        filterPanel.add(filterButton);
+        panel.add(filterPanel, BorderLayout.NORTH); // Ajout du panneau de filtre en haut
 
         JButton ajouterBtn = new JButton("Ajouter Investissement");
         ajouterBtn.addActionListener(e -> new InvestissementFrame(utilisateurConnecte, this).setVisible(true));
@@ -120,7 +173,6 @@ public class Main extends JFrame {
 
         refreshInvestissementTable();
     }
-
     public void showModifierComptePanel() {
         JPanel panel = new JPanel();
         panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
@@ -222,6 +274,43 @@ public class Main extends JFrame {
                 return;
             }
 
+            // Validation de l'email
+            String email = emailField.getText().trim();
+            String emailRegex = "^[A-Za-z0-9+_.-]+@(.+)$";
+            if (!email.matches(emailRegex)) {
+                JOptionPane.showMessageDialog(this,
+                        "Veuillez entrer un email valide (exemple: utilisateur@domaine.com).",
+                        "Erreur",
+                        JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            // Validation du mot de passe (si modifié)
+            String newPassword = new String(passwordField.getPassword()).trim();
+            if (!newPassword.isEmpty()) {
+                if (newPassword.length() < 8) {
+                    JOptionPane.showMessageDialog(this,
+                            "Le mot de passe doit contenir au moins 8 caractères.",
+                            "Erreur",
+                            JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+                if (!newPassword.matches(".*[A-Z].*")) {
+                    JOptionPane.showMessageDialog(this,
+                            "Le mot de passe doit contenir au moins une majuscule.",
+                            "Erreur",
+                            JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+                if (!newPassword.matches(".*[0-9].*")) {
+                    JOptionPane.showMessageDialog(this,
+                            "Le mot de passe doit contenir au moins un numéro.",
+                            "Erreur",
+                            JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+            }
+
             try {
                 utilisateurConnecte.setNom(nomField.getText().trim());
                 utilisateurConnecte.setPrenom(prenomField.getText().trim());
@@ -229,7 +318,6 @@ public class Main extends JFrame {
                 utilisateurConnecte.setDevisePrincipale((String) deviseCombo.getSelectedItem());
                 utilisateurConnecte.setObjectifFinancier(objectifField.getText().trim());
 
-                String newPassword = new String(passwordField.getPassword()).trim();
                 if (!newPassword.isEmpty()) {
                     // 🔹 Hash le mot de passe avant sauvegarde
                     utilisateurService.setPassword(utilisateurConnecte, newPassword);

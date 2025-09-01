@@ -77,6 +77,39 @@ public class RegisterFrame extends JFrame {
                 return;
             }
 
+            // Validation de l'email
+            String emailRegex = "^[A-Za-z0-9+_.-]+@(.+)$";
+            if (!email.matches(emailRegex)) {
+                JOptionPane.showMessageDialog(this,
+                        "Veuillez entrer un email valide (exemple: utilisateur@domaine.com).",
+                        "Erreur",
+                        JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            // Validation du mot de passe
+            if (password.length() < 8) {
+                JOptionPane.showMessageDialog(this,
+                        "Le mot de passe doit contenir au moins 8 caractères.",
+                        "Erreur",
+                        JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            if (!password.matches(".*[A-Z].*")) {
+                JOptionPane.showMessageDialog(this,
+                        "Le mot de passe doit contenir au moins une majuscule.",
+                        "Erreur",
+                        JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            if (!password.matches(".*[0-9].*")) {
+                JOptionPane.showMessageDialog(this,
+                        "Le mot de passe doit contenir au moins un numéro.",
+                        "Erreur",
+                        JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
             try {
                 // Créer utilisateur
                 Utilisateur u = new Utilisateur();

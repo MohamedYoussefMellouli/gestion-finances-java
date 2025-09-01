@@ -73,6 +73,43 @@ public class ModifierCompteFrame extends JFrame {
                 return;
             }
 
+            // Validation de l'email
+            String email = emailField.getText().trim();
+            String emailRegex = "^[A-Za-z0-9+_.-]+@(.+)$";
+            if (!email.matches(emailRegex)) {
+                JOptionPane.showMessageDialog(this,
+                        "Veuillez entrer un email valide (exemple: utilisateur@domaine.com).",
+                        "Erreur",
+                        JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            // Validation du mot de passe (si modifié)
+            String newPassword = new String(passwordField.getPassword()).trim();
+            if (!newPassword.isEmpty()) {
+                if (newPassword.length() < 8) {
+                    JOptionPane.showMessageDialog(this,
+                            "Le mot de passe doit contenir au moins 8 caractères.",
+                            "Erreur",
+                            JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+                if (!newPassword.matches(".*[A-Z].*")) {
+                    JOptionPane.showMessageDialog(this,
+                            "Le mot de passe doit contenir au moins une majuscule.",
+                            "Erreur",
+                            JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+                if (!newPassword.matches(".*[0-9].*")) {
+                    JOptionPane.showMessageDialog(this,
+                            "Le mot de passe doit contenir au moins un numéro.",
+                            "Erreur",
+                            JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+            }
+
             try {
                 utilisateur.setNom(nomField.getText().trim());
                 utilisateur.setPrenom(prenomField.getText().trim());
@@ -80,7 +117,6 @@ public class ModifierCompteFrame extends JFrame {
                 utilisateur.setDevisePrincipale((String) deviseCombo.getSelectedItem());
                 utilisateur.setObjectifFinancier(objectifField.getText().trim());
 
-                String newPassword = new String(passwordField.getPassword()).trim();
                 if (!newPassword.isEmpty()) {
                     // 🔹 Hash le mot de passe avant sauvegarde
                     service.setPassword(utilisateur, newPassword);
